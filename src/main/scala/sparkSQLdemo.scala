@@ -7,6 +7,8 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
 
 
 
@@ -26,18 +28,32 @@ object sparkSQLdemo {
     import sqlContext.implicits._
     
     
-    case class MobFailData(loc_id: String, fail_count: Int, Mob: String, error_code: String)
-    
-    
     val df_schema = sqlContext.read
     .format("com.databricks.spark.csv")
     .load(inFilePath)
+    
+    val MobFailSchema = StructType(
+          StructField("loc_id", StringType, true) ::
+          StructField("fail_time_sec", IntegerType, true) ::
+          StructField("mob_no", StringType, true) ::
+          StructField("error_code", StringType, true) :: Nil
+    )
+    
+    
+    val df_schema_1 = sqlContext.read.format("com.databricks.spark.csv")
+    .option("header", "true")
+    .option("inferSchema", "false")
+    .option("delimeter", ",")
+    .option("schema", "MobFailSchema")
+    .load(inFilePath)
+    
     
     val df = df_schema.withColumnRenamed("in_sec", "_c1")
     .withColumn("_c1", df_schema.col("_c1").cast("Int").alias("Fail_in_sec"))
     
     df_schema.printSchema()
     df.printSchema()
+    df_schema_1.printSchema()
     
     df
     .select(col("_c0").alias("location_id"), col("_c2").alias("mob"))
